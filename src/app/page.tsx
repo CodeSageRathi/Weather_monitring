@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import IndiaMap from '@/components/IndiaMap';
 
 // Mock Data for UI development - will be replaced by API data
 const MOCK_HOURLY_FORECAST = Array.from({ length: 12 }, (_, i) => ({
@@ -86,7 +87,7 @@ export default function Home() {
         </Button>
       </header>
 
-      <main className="p-4 sm:p-6 md:p-8">
+      <main className="p-4 sm:p-6 md:p-8 space-y-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
             <Loader2 className="animate-spin h-12 w-12 mb-4" />
@@ -99,107 +100,118 @@ export default function Home() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : weather && locationName ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Current Weather Card */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+          <>
+            <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                 <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <div>
-                      <h2 className="text-3xl font-bold">{locationName}</h2>
-                      <p className="text-base font-normal">{getWeatherInfo(weather.weatherCode).text}</p>
-                    </div>
-                    <div className="text-6xl">{getWeatherInfo(weather.weatherCode).emoji}</div>
-                  </CardTitle>
+                    <CardTitle className="text-3xl font-bold text-center">India Weather Map</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-8xl font-bold">{weather.temperature}°C</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2"><Thermometer size={16} /> Feels like: {weather.feelsLike}°C</div>
-                      <div className="flex items-center gap-2"><Droplets size={16} /> Humidity: {weather.humidity}%</div>
-                      <div className="flex items-center gap-2"><Wind size={16} /> Wind: {weather.windSpeed} km/h</div>
-                      <div className="flex items-center gap-2"><Sun size={16} /> UV Index: {weather.uvIndex}</div>
-                  </div>
+                <CardContent className="flex items-center justify-center">
+                   <IndiaMap />
                 </CardContent>
-              </Card>
+            </Card>
 
-              {/* Hourly Forecast */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                <CardHeader><CardTitle>Hourly Forecast</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex space-x-4 overflow-x-auto pb-2">
-                    {MOCK_HOURLY_FORECAST.map((hour, index) => (
-                      <div key={index} className="flex flex-col items-center flex-shrink-0 space-y-1 p-2 rounded-lg bg-white/10">
-                        <span>{hour.time}</span>
-                        {hour.icon}
-                        <span className="font-bold">{hour.temp}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Current Weather Card */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-center">
+                      <div>
+                        <h2 className="text-3xl font-bold">{locationName}</h2>
+                        <p className="text-base font-normal">{getWeatherInfo(weather.weatherCode).text}</p>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      <div className="text-6xl">{getWeatherInfo(weather.weatherCode).emoji}</div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-8xl font-bold">{weather.temperature}°C</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                        <div className="flex items-center gap-2"><Thermometer size={16} /> Feels like: {weather.feelsLike}°C</div>
+                        <div className="flex items-center gap-2"><Droplets size={16} /> Humidity: {weather.humidity}%</div>
+                        <div className="flex items-center gap-2"><Wind size={16} /> Wind: {weather.windSpeed} km/h</div>
+                        <div className="flex items-center gap-2"><Sun size={16} /> UV Index: {weather.uvIndex}</div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Right Column */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Weekly Forecast */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                <CardHeader><CardTitle>7-Day Forecast</CardTitle></CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
-                    {MOCK_WEEKLY_FORECAST.map((day, index) => (
-                      <AccordionItem value={`item-${index}`} key={index} className="border-white/20">
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex justify-between items-center w-full">
-                            <span>{day.day}</span>
-                            <div className="flex items-center gap-2">
-                              {day.icon}
-                              <span>{day.temp}</span>
+                {/* Hourly Forecast */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader><CardTitle>Hourly Forecast</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex space-x-4 overflow-x-auto pb-2">
+                      {MOCK_HOURLY_FORECAST.map((hour, index) => (
+                        <div key={index} className="flex flex-col items-center flex-shrink-0 space-y-1 p-2 rounded-lg bg-white/10">
+                          <span>{hour.time}</span>
+                          {hour.icon}
+                          <span className="font-bold">{hour.temp}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Weekly Forecast */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader><CardTitle>7-Day Forecast</CardTitle></CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      {MOCK_WEEKLY_FORECAST.map((day, index) => (
+                        <AccordionItem value={`item-${index}`} key={index} className="border-white/20">
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex justify-between items-center w-full">
+                              <span>{day.day}</span>
+                              <div className="flex items-center gap-2">
+                                {day.icon}
+                                <span>{day.temp}</span>
+                              </div>
                             </div>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          Detailed forecast for {day.day} will go here.
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
-              {/* Weather Alerts */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                <CardHeader><CardTitle>Weather Alerts</CardTitle></CardHeader>
-                <CardContent>
-                  <p>No active alerts.</p>
-                </CardContent>
-              </Card>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            Detailed forecast for {day.day} will go here.
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+                {/* Weather Alerts */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader><CardTitle>Weather Alerts</CardTitle></CardHeader>
+                  <CardContent>
+                    <p>No active alerts.</p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Bottom Panel */}
+              <div className="lg:col-span-3">
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader><CardTitle>Today's Highlights</CardTitle></CardHeader>
+                  <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
+                      <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Air Quality</p><p className="font-bold">Good</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Sunrise</p><p className="font-bold">6:05 AM</p>
+                      </div>
+                       <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Sunset</p><p className="font-bold">8:30 PM</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Pressure</p><p className="font-bold">{weather.pressure} hPa</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Dew Point</p><p className="font-bold">{weather.dewPoint}°C</p>
+                      </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            
-            {/* Bottom Panel */}
-            <div className="lg:col-span-3">
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                <CardHeader><CardTitle>Today's Highlights</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
-                    <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Air Quality</p><p className="font-bold">Good</p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Sunrise</p><p className="font-bold">6:05 AM</p>
-                    </div>
-                     <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Sunset</p><p className="font-bold">8:30 PM</p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Pressure</p><p className="font-bold">{weather.pressure} hPa</p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Dew Point</p><p className="font-bold">{weather.dewPoint}°C</p>
-                    </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          </>
         ) : (
           !loading && <div className="text-center">Could not display weather. Please ensure location is enabled and refresh.</div>
         )}
