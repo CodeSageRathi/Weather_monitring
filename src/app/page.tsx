@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-// Mock Data for UI development
+// Mock Data for UI development - will be replaced by API data
 const MOCK_HOURLY_FORECAST = Array.from({ length: 12 }, (_, i) => ({
   time: `${(new Date().getHours() + i + 1) % 24}:00`,
   temp: `${Math.floor(Math.random() * 10) + 15}°`,
@@ -35,26 +35,36 @@ export default function Home() {
   const [loadingMessage, setLoadingMessage] = useState("Detecting your location...");
 
   useEffect(() => {
-    // For development, using mock data.
-    setTimeout(() => {
-      setWeather({
-        temperature: 21,
-        weatherCode: 3,
-        humidity: 65,
-        windSpeed: 15,
-        uvIndex: 5,
-        feelsLike: 20,
-        pressure: 1012,
-        dewPoint: 14,
-        visibility: 10,
-      });
-      setLocationName("San Francisco");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          setLoadingMessage("Fetching weather data...");
+          try {
+            const { latitude, longitude } = position.coords;
+            const { weather, location } = await fetchWeatherAndLocation(latitude, longitude);
+            setWeather(weather);
+            setLocationName(location.name);
+          } catch (err) {
+            setError("Could not fetch weather data. Please try again later.");
+            console.error(err);
+          } finally {
+            setLoading(false);
+          }
+        },
+        (err) => {
+          setError("Location access denied. Please enable location services in your browser settings to see local weather.");
+          setLoading(false);
+          console.error(err);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by this browser.");
       setLoading(false);
-    }, 1500);
+    }
   }, []);
   
   const weatherBackgroundClass = () => {
-    if (!weather) return 'from-blue-400 to-blue-600'; // Default background
+    if (!weather) return 'from-gray-400 to-slate-600'; // Default background
     const code = weather.weatherCode;
     if ([0, 1].includes(code)) return 'from-orange-400 to-yellow-500'; // Sunny
     if ([61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code)) return 'from-teal-500 to-blue-700'; // Rainy/Thunderstorm
@@ -88,7 +98,7 @@ export default function Home() {
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        ) : (
+        ) : weather && locationName ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
@@ -98,18 +108,18 @@ export default function Home() {
                   <CardTitle className="flex justify-between items-center">
                     <div>
                       <h2 className="text-3xl font-bold">{locationName}</h2>
-                      <p className="text-base font-normal">{getWeatherInfo(weather!.weatherCode).text}</p>
+                      <p className="text-base font-normal">{getWeatherInfo(weather.weatherCode).text}</p>
                     </div>
-                    <div className="text-6xl">{getWeatherInfo(weather!.weatherCode).emoji}</div>
+                    <div className="text-6xl">{getWeatherInfo(weather.weatherCode).emoji}</div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-8xl font-bold">{weather?.temperature}°C</p>
+                  <p className="text-8xl font-bold">{weather.temperature}°C</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2"><Thermometer size={16} /> Feels like: {weather?.feelsLike}°C</div>
-                      <div className="flex items-center gap-2"><Droplets size={16} /> Humidity: {weather?.humidity}%</div>
-                      <div className="flex items-center gap-2"><Wind size={16} /> Wind: {weather?.windSpeed} km/h</div>
-                      <div className="flex items-center gap-2"><Sun size={16} /> UV Index: {weather?.uvIndex}</div>
+                      <div className="flex items-center gap-2"><Thermometer size={16} /> Feels like: {weather.feelsLike}°C</div>
+                      <div className="flex items-center gap-2"><Droplets size={16} /> Humidity: {weather.humidity}%</div>
+                      <div className="flex items-center gap-2"><Wind size={16} /> Wind: {weather.windSpeed} km/h</div>
+                      <div className="flex items-center gap-2"><Sun size={16} /> UV Index: {weather.uvIndex}</div>
                   </div>
                 </CardContent>
               </Card>
@@ -181,15 +191,17 @@ export default function Home() {
                       <p className="text-sm text-white/80">Sunset</p><p className="font-bold">8:30 PM</p>
                     </div>
                     <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Pressure</p><p className="font-bold">{weather?.pressure} hPa</p>
+                      <p className="text-sm text-white/80">Pressure</p><p className="font-bold">{weather.pressure} hPa</p>
                     </div>
                     <div className="p-2 rounded-lg bg-white/10">
-                      <p className="text-sm text-white/80">Dew Point</p><p className="font-bold">{weather?.dewPoint}°C</p>
+                      <p className="text-sm text-white/80">Dew Point</p><p className="font-bold">{weather.dewPoint}°C</p>
                     </div>
                 </CardContent>
               </Card>
             </div>
           </div>
+        ) : (
+          !loading && <div className="text-center">Could not display weather. Please ensure location is enabled and refresh.</div>
         )}
       </main>
     </div>
