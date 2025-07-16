@@ -103,7 +103,7 @@ export default function Home() {
           <>
             <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                 <CardHeader>
-                    <CardTitle className="text-3xl font-bold text-center">India Weather Map</CardTitle>
+                    <CardTitle className="text-3xl font-bold text-center">India Climate Map</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center">
                    <IndiaMap />
