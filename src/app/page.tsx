@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { getPersonalizedReport } from '@/lib/actions';
-import { fetchWeatherAndLocation, getWeatherInfo, type WeatherData } from '@/lib/weather';
+import { fetchWeatherByCity, fetchWeatherAndLocation, getWeatherInfo, type WeatherData } from '@/lib/weather';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Terminal, Cloud, User, MapPin, Wind, Droplets, Sun, Sunrise, Sunset, Eye, Gauge, Thermometer } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import IndiaMap from '@/components/IndiaMap';
 
-// Mock Data for UI development - will be replaced by API data
 const MOCK_HOURLY_FORECAST = Array.from({ length: 12 }, (_, i) => ({
   time: `${(new Date().getHours() + i + 1) % 24}:00`,
   temp: `${Math.floor(Math.random() * 10) + 15}°`,
@@ -28,14 +26,46 @@ const MOCK_WEEKLY_FORECAST = [
   { day: 'Sunday', temp: '22°/14°', icon: <Sun size={24} /> },
 ];
 
+const MAJOR_CITIES = ["Delhi", "Mumbai", "Bengaluru", "Kolkata"];
+
+interface CityWeather {
+  city: string;
+  weather: WeatherData | null;
+}
+
+const CityWeatherCard = ({ city, weather }: { city: string, weather: WeatherData | null }) => {
+  if (!weather) {
+    return (
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg flex flex-col items-center justify-center p-4 min-h-[120px]">
+        <Loader2 className="animate-spin h-6 w-6" />
+        <span className="mt-2 text-sm">{city}</span>
+      </Card>
+    );
+  }
+
+  const { text, emoji } = getWeatherInfo(weather.weatherCode);
+
+  return (
+    <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg p-4 flex flex-col items-center text-center">
+      <h3 className="font-bold text-lg">{city}</h3>
+      <div className="text-4xl my-2">{emoji}</div>
+      <p className="text-2xl font-bold">{weather.temperature}°C</p>
+      <p className="text-xs text-white/80">{text}</p>
+    </Card>
+  );
+};
+
+
 export default function Home() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
+  const [majorCitiesWeather, setMajorCitiesWeather] = useState<CityWeather[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Detecting your location...");
 
   useEffect(() => {
+    // Fetch user's location weather
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -46,14 +76,14 @@ export default function Home() {
             setWeather(weather);
             setLocationName(location.name);
           } catch (err) {
-            setError("Could not fetch weather data. Please try again later.");
+            setError("Could not fetch local weather. Please try again later.");
             console.error(err);
           } finally {
             setLoading(false);
           }
         },
         (err) => {
-          setError("Location access denied. Please enable location services in your browser settings to see local weather.");
+          setError("Location access denied. Please enable location services to see local weather.");
           setLoading(false);
           console.error(err);
         }
@@ -62,6 +92,23 @@ export default function Home() {
       setError("Geolocation is not supported by this browser.");
       setLoading(false);
     }
+    
+    // Fetch weather for major cities
+    const fetchCitiesWeather = async () => {
+      const citiesData = await Promise.all(MAJOR_CITIES.map(async (city) => {
+        try {
+          const weather = await fetchWeatherByCity(city);
+          return { city, weather };
+        } catch (error) {
+          console.error(`Failed to fetch weather for ${city}`, error);
+          return { city, weather: null };
+        }
+      }));
+      setMajorCitiesWeather(citiesData);
+    };
+
+    fetchCitiesWeather();
+
   }, []);
   
   const weatherBackgroundClass = () => {
@@ -103,10 +150,12 @@ export default function Home() {
           <>
             <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                 <CardHeader>
-                    <CardTitle className="text-3xl font-bold text-center">India Climate Map</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-center">Weather in Major Cities</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center">
-                   <IndiaMap />
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   {majorCitiesWeather.map(({ city, weather }) => (
+                     <CityWeatherCard key={city} city={city} weather={weather} />
+                   ))}
                 </CardContent>
             </Card>
 

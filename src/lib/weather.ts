@@ -47,6 +47,41 @@ export const getWeatherInfo = (weatherCode: number): { text: string; emoji: stri
   return weatherMap[weatherCode] || { text: "Unknown weather", emoji: "🤷" };
 };
 
+export const fetchWeatherByCity = async (city: string): Promise<WeatherData> => {
+    // First, get coordinates for the city
+    const geocodeResponse = await fetch(`https://nominatim.openstreetmap.org/search?city=${city}&countrycodes=IN&format=json&limit=1`);
+    if (!geocodeResponse.ok) {
+        throw new Error(`Failed to geocode city: ${city}`);
+    }
+    const geocodeData = await geocodeResponse.json();
+    if (geocodeData.length === 0) {
+        throw new Error(`Could not find location for city: ${city}`);
+    }
+    const { lat, lon } = geocodeData[0];
+
+    // Then, fetch weather for those coordinates
+    const weatherResponse = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index,surface_pressure,dew_point_2m,visibility`
+    );
+    if (!weatherResponse.ok) {
+        throw new Error("Failed to fetch weather data.");
+    }
+    const weatherData = await weatherResponse.json();
+
+    return {
+      temperature: Math.round(weatherData.current.temperature_2m),
+      weatherCode: weatherData.current.weather_code,
+      humidity: weatherData.current.relative_humidity_2m,
+      windSpeed: Math.round(weatherData.current.wind_speed_10m),
+      feelsLike: Math.round(weatherData.current.apparent_temperature),
+      uvIndex: Math.round(weatherData.current.uv_index),
+      pressure: Math.round(weatherData.current.surface_pressure),
+      dewPoint: Math.round(weatherData.current.dew_point_2m),
+      visibility: Math.round(weatherData.current.visibility / 1000), // to km
+    };
+};
+
+
 export const fetchWeatherAndLocation = async (
   latitude: number,
   longitude: number
@@ -77,7 +112,7 @@ export const fetchWeatherAndLocation = async (
       windSpeed: Math.round(weatherData.current.wind_speed_10m),
       feelsLike: Math.round(weatherData.current.apparent_temperature),
       uvIndex: Math.round(weatherData.current.uv_index),
-      pressure: Math.round(weatherData.current.surface_pressure / 100), // to hPa
+      pressure: Math.round(weatherData.current.surface_pressure), // API gives hPa directly
       dewPoint: Math.round(weatherData.current.dew_point_2m),
       visibility: Math.round(weatherData.current.visibility / 1000), // to km
     },
