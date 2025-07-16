@@ -85,7 +85,7 @@ export default function Home() {
         (err) => {
           setError("Location access denied. Please enable location services to see local weather.");
           setLoading(false);
-          console.error(err);
+          console.error(`Geolocation error: ${err.message}`);
         }
       );
     } else {
