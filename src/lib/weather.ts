@@ -3,6 +3,11 @@ export interface WeatherData {
   weatherCode: number;
   humidity: number;
   windSpeed: number;
+  feelsLike: number;
+  uvIndex: number;
+  pressure: number;
+  dewPoint: number;
+  visibility: number;
 }
 
 export interface LocationData {
@@ -47,7 +52,7 @@ export const fetchWeatherAndLocation = async (
   longitude: number
 ): Promise<{ weather: WeatherData; location: LocationData }> => {
   const weatherResponse = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index,surface_pressure,dew_point_2m,visibility`
   );
   if (!weatherResponse.ok) {
     throw new Error("Failed to fetch weather data.");
@@ -70,6 +75,11 @@ export const fetchWeatherAndLocation = async (
       weatherCode: weatherData.current.weather_code,
       humidity: weatherData.current.relative_humidity_2m,
       windSpeed: Math.round(weatherData.current.wind_speed_10m),
+      feelsLike: Math.round(weatherData.current.apparent_temperature),
+      uvIndex: Math.round(weatherData.current.uv_index),
+      pressure: Math.round(weatherData.current.surface_pressure / 100), // to hPa
+      dewPoint: Math.round(weatherData.current.dew_point_2m),
+      visibility: Math.round(weatherData.current.visibility / 1000), // to km
     },
     location: {
       name: cityName,
