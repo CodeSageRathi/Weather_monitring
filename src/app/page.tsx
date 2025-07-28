@@ -83,7 +83,20 @@ export default function Home() {
           }
         },
         (err) => {
-          setError("Location access denied. Please enable location services to see local weather.");
+          switch (err.code) {
+            case err.PERMISSION_DENIED:
+              setError("Location access denied. Please enable location services to see local weather.");
+              break;
+            case err.POSITION_UNAVAILABLE:
+              setError("Location information is unavailable.");
+              break;
+            case err.TIMEOUT:
+              setError("The request to get user location timed out.");
+              break;
+            default:
+              setError("An unknown error occurred while fetching location.");
+              break;
+          }
           setLoading(false);
           console.error(`Geolocation error: ${err.message}`);
         }
