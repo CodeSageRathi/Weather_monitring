@@ -2,29 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { getPersonalizedReport } from '@/lib/actions';
-import { fetchWeatherByCity, fetchWeatherAndLocation, getWeatherInfo, type WeatherData } from '@/lib/weather';
+import { fetchWeatherByCity, fetchWeatherAndLocation, getWeatherInfo, type WeatherData, type HourlyForecast, type WeeklyForecast } from '@/lib/weather';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Terminal, Cloud, User, MapPin, Wind, Droplets, Sun, Sunrise, Sunset, Eye, Gauge, Thermometer } from "lucide-react";
+import { Loader2, Terminal, Cloud, User, MapPin, Wind, Droplets, Sun, Sunrise, Sunset, Eye, Gauge, Thermometer, BrainCircuit } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-
-const MOCK_HOURLY_FORECAST = Array.from({ length: 12 }, (_, i) => ({
-  time: `${(new Date().getHours() + i + 1) % 24}:00`,
-  temp: `${Math.floor(Math.random() * 10) + 15}°`,
-  icon: <Cloud size={24} />,
-}));
-
-const MOCK_WEEKLY_FORECAST = [
-  { day: 'Monday', temp: '22°/14°', icon: <Cloud size={24} /> },
-  { day: 'Tuesday', temp: '24°/15°', icon: <Sun size={24} /> },
-  { day: 'Wednesday', temp: '21°/13°', icon: <Cloud size={24} /> },
-  { day: 'Thursday', temp: '25°/16°', icon: <Sun size={24} /> },
-  { day: 'Friday', temp: '23°/15°', icon: <Cloud size={24} /> },
-  { day: 'Saturday', temp: '20°/12°', icon: <Cloud size={24} /> },
-  { day: 'Sunday', temp: '22°/14°', icon: <Sun size={24} /> },
-];
 
 const MAJOR_CITIES = ["Delhi", "Mumbai", "Bengaluru", "Kolkata"];
 
@@ -58,11 +42,58 @@ const CityWeatherCard = ({ city, weather }: { city: string, weather: WeatherData
 
 export default function Home() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
+  const [weeklyForecast, setWeeklyForecast] = useState<WeeklyForecast[]>([]);
   const [locationName, setLocationName] = useState<string | null>(null);
   const [majorCitiesWeather, setMajorCitiesWeather] = useState<CityWeather[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Detecting your location...");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [personalizedReport, setPersonalizedReport] = useState<string | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+
+  const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery) {
+      setLoading(true);
+      setLoadingMessage(`Searching for ${searchQuery}...`);
+      setError(null);
+      try {
+        const { weather, location, hourly, weekly } = await fetchWeatherByCity(searchQuery);
+        setWeather(weather);
+        setLocationName(location.name);
+        setHourlyForecast(hourly);
+        setWeeklyForecast(weekly);
+      } catch (err) {
+        setError(`Could not find weather for "${searchQuery}". Please try another city.`);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handlePersonalizedReport = async () => {
+    if (!weather || !locationName) return;
+    setLoadingReport(true);
+    setPersonalizedReport(null);
+    try {
+      const report = await getPersonalizedReport({
+        temperature: weather.temperature,
+        weatherConditions: getWeatherInfo(weather.weatherCode).text,
+        humidity: weather.humidity,
+        windSpeed: weather.windSpeed,
+        locationName: locationName,
+      });
+      setPersonalizedReport(report);
+    } catch (err) {
+      console.error("Failed to get personalized report", err);
+      setPersonalizedReport("Sorry, I couldn't generate a personalized report at this time.");
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
 
   useEffect(() => {
     // Fetch user's location weather
@@ -72,9 +103,11 @@ export default function Home() {
           setLoadingMessage("Fetching weather data...");
           try {
             const { latitude, longitude } = position.coords;
-            const { weather, location } = await fetchWeatherAndLocation(latitude, longitude);
+            const { weather, location, hourly, weekly } = await fetchWeatherAndLocation(latitude, longitude);
             setWeather(weather);
             setLocationName(location.name);
+            setHourlyForecast(hourly);
+            setWeeklyForecast(weekly);
           } catch (err) {
             setError("Could not fetch local weather. Please try again later.");
             console.error(err);
@@ -110,7 +143,7 @@ export default function Home() {
     const fetchCitiesWeather = async () => {
       const citiesData = await Promise.all(MAJOR_CITIES.map(async (city) => {
         try {
-          const weather = await fetchWeatherByCity(city);
+          const { weather } = await fetchWeatherByCity(city);
           return { city, weather };
         } catch (error) {
           console.error(`Failed to fetch weather for ${city}`, error);
@@ -140,7 +173,14 @@ export default function Home() {
           <h1 className="text-2xl font-bold">SkyWatch</h1>
         </div>
         <div className="w-full max-w-xs">
-          <Input type="search" placeholder="Search city..." className="bg-white/20 border-white/30 placeholder:text-white/70 focus:bg-white/30 focus:ring-white/50" />
+          <Input 
+            type="search" 
+            placeholder="Search city and press Enter..." 
+            className="bg-white/20 border-white/30 placeholder:text-white/70 focus:bg-white/30 focus:ring-white/50"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
+          />
         </div>
         <Button variant="ghost" size="icon">
           <User size={24} />
@@ -202,16 +242,41 @@ export default function Home() {
                   <CardHeader><CardTitle>Hourly Forecast</CardTitle></CardHeader>
                   <CardContent>
                     <div className="flex space-x-4 overflow-x-auto pb-2">
-                      {MOCK_HOURLY_FORECAST.map((hour, index) => (
+                      {hourlyForecast.map((hour, index) => (
                         <div key={index} className="flex flex-col items-center flex-shrink-0 space-y-1 p-2 rounded-lg bg-white/10">
                           <span>{hour.time}</span>
-                          {hour.icon}
-                          <span className="font-bold">{hour.temp}</span>
+                          <div className="text-2xl">{getWeatherInfo(hour.weatherCode).emoji}</div>
+                          <span className="font-bold">{hour.temp}°C</span>
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
+                
+                {/* Personalized AI Report */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BrainCircuit />
+                            Personalized Report
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingReport ? (
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="animate-spin" />
+                                <p>Generating your personalized report...</p>
+                            </div>
+                        ) : personalizedReport ? (
+                            <p>{personalizedReport}</p>
+                        ) : (
+                             <Button onClick={handlePersonalizedReport} disabled={loadingReport}>
+                                Generate AI-Powered Advice
+                            </Button>
+                        )}
+                    </CardContent>
+                </Card>
+
               </div>
 
               {/* Right Column */}
@@ -221,53 +286,47 @@ export default function Home() {
                   <CardHeader><CardTitle>7-Day Forecast</CardTitle></CardHeader>
                   <CardContent>
                     <Accordion type="single" collapsible className="w-full">
-                      {MOCK_WEEKLY_FORECAST.map((day, index) => (
+                      {weeklyForecast.map((day, index) => (
                         <AccordionItem value={`item-${index}`} key={index} className="border-white/20">
                           <AccordionTrigger className="hover:no-underline">
                             <div className="flex justify-between items-center w-full">
                               <span>{day.day}</span>
                               <div className="flex items-center gap-2">
-                                {day.icon}
-                                <span>{day.temp}</span>
+                                <div className="text-2xl">{getWeatherInfo(day.weatherCode).emoji}</div>
+                                <span>{day.tempMax}°/{day.tempMin}°</span>
                               </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            Detailed forecast for {day.day} will go here.
+                           {getWeatherInfo(day.weatherCode).text} throughout the day.
                           </AccordionContent>
                         </AccordionItem>
                       ))}
                     </Accordion>
                   </CardContent>
                 </Card>
-                {/* Weather Alerts */}
-                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                  <CardHeader><CardTitle>Weather Alerts</CardTitle></CardHeader>
-                  <CardContent>
-                    <p>No active alerts.</p>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              {/* Bottom Panel */}
-              <div className="lg:col-span-3">
+                
+                 {/* Today's Highlights */}
                 <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                   <CardHeader><CardTitle>Today's Highlights</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
+                  <CardContent className="grid grid-cols-2 gap-4 text-center">
                       <div className="p-2 rounded-lg bg-white/10">
                         <p className="text-sm text-white/80">Air Quality</p><p className="font-bold">Good</p>
                       </div>
                       <div className="p-2 rounded-lg bg-white/10">
-                        <p className="text-sm text-white/80">Sunrise</p><p className="font-bold">6:05 AM</p>
+                        <p className="text-sm text-white/80">Sunrise</p><p className="font-bold">{new Date(weather.sunrise).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                       </div>
                        <div className="p-2 rounded-lg bg-white/10">
-                        <p className="text-sm text-white/80">Sunset</p><p className="font-bold">8:30 PM</p>
+                        <p className="text-sm text-white/80">Sunset</p><p className="font-bold">{new Date(weather.sunset).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-white/10">
                         <p className="text-sm text-white/80">Pressure</p><p className="font-bold">{weather.pressure} hPa</p>
                       </div>
                       <div className="p-2 rounded-lg bg-white/10">
                         <p className="text-sm text-white/80">Dew Point</p><p className="font-bold">{weather.dewPoint}°C</p>
+                      </div>
+                       <div className="p-2 rounded-lg bg-white/10">
+                        <p className="text-sm text-white/80">Visibility</p><p className="font-bold">{weather.visibility} km</p>
                       </div>
                   </CardContent>
                 </Card>
