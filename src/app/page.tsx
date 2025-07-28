@@ -123,7 +123,7 @@ export default function Home() {
           (err) => {
             console.warn(`Geolocation failed: ${err.message}. Using fallback location.`);
             // Use fallback coordinates for New York as an example
-            loadWeatherForCoords(40.7128, -74.0060);
+            loadWeatherForCoords(40.7128, -74.0060); 
              switch (err.code) {
               case err.PERMISSION_DENIED:
                 setError("Location access denied. Showing weather for a default city. You can use the search bar to find your location.");
