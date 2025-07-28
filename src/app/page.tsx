@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPersonalizedReport } from '@/lib/actions';
+import { getPersonalizedReport, submitChatMessage } from '@/lib/actions';
 import { fetchWeatherByCity, fetchWeatherAndLocation, getWeatherInfo, type WeatherData, type HourlyForecast, type WeeklyForecast } from '@/lib/weather';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Terminal, Cloud, User, MapPin, Wind, Droplets, Sun, Sunrise, Sunset, Eye, Gauge, Thermometer, BrainCircuit } from "lucide-react";
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Chatbot } from '@/components/ui/chatbot';
 
 const MAJOR_CITIES = ["Delhi", "Mumbai", "Bengaluru", "Kolkata"];
 
@@ -236,22 +237,13 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Hourly Forecast */}
-                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
-                  <CardHeader><CardTitle>Hourly Forecast</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="flex space-x-4 overflow-x-auto pb-2">
-                      {hourlyForecast.map((hour, index) => (
-                        <div key={index} className="flex flex-col items-center flex-shrink-0 space-y-1 p-2 rounded-lg bg-white/10">
-                          <span>{hour.time}</span>
-                          <div className="text-2xl">{getWeatherInfo(hour.weatherCode).emoji}</div>
-                          <span className="font-bold">{hour.temp}°C</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                
+                {/* Chatbot */}
+                <Chatbot 
+                  weather={weather}
+                  locationName={locationName}
+                  handleChatSubmit={submitChatMessage}
+                />
                 
                 {/* Personalized AI Report */}
                 <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
@@ -281,6 +273,22 @@ export default function Home() {
 
               {/* Right Column */}
               <div className="lg:col-span-1 space-y-6">
+                 {/* Hourly Forecast */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
+                  <CardHeader><CardTitle>Hourly Forecast</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex space-x-4 overflow-x-auto pb-2">
+                      {hourlyForecast.map((hour, index) => (
+                        <div key={index} className="flex flex-col items-center flex-shrink-0 space-y-1 p-2 rounded-lg bg-white/10">
+                          <span>{hour.time}</span>
+                          <div className="text-2xl">{getWeatherInfo(hour.weatherCode).emoji}</div>
+                          <span className="font-bold">{hour.temp}°C</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Weekly Forecast */}
                 <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                   <CardHeader><CardTitle>7-Day Forecast</CardTitle></CardHeader>
