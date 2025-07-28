@@ -94,51 +94,55 @@ export default function Home() {
       setLoadingReport(false);
     }
   };
+  
+  const loadWeatherForCoords = async (latitude: number, longitude: number) => {
+    setLoadingMessage("Fetching weather data...");
+    try {
+      const { weather, location, hourly, weekly } = await fetchWeatherAndLocation(latitude, longitude);
+      setWeather(weather);
+      setLocationName(location.name);
+      setHourlyForecast(hourly);
+      setWeeklyForecast(weekly);
+      setError(null);
+    } catch (err) {
+      setError("Could not fetch local weather. Please try again later.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
-    // Fetch user's location weather
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          setLoadingMessage("Fetching weather data...");
-          try {
-            const { latitude, longitude } = position.coords;
-            const { weather, location, hourly, weekly } = await fetchWeatherAndLocation(latitude, longitude);
-            setWeather(weather);
-            setLocationName(location.name);
-            setHourlyForecast(hourly);
-            setWeeklyForecast(weekly);
-          } catch (err) {
-            setError("Could not fetch local weather. Please try again later.");
-            console.error(err);
-          } finally {
-            setLoading(false);
+    const fetchInitialWeather = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            loadWeatherForCoords(position.coords.latitude, position.coords.longitude);
+          },
+          (err) => {
+            console.warn(`Geolocation failed: ${err.message}. Using fallback location.`);
+            // Use fallback coordinates for New York as an example
+            loadWeatherForCoords(40.7128, -74.0060);
+             switch (err.code) {
+              case err.PERMISSION_DENIED:
+                setError("Location access denied. Showing weather for a default city. You can use the search bar to find your location.");
+                break;
+              default:
+                setError("Could not determine your location. Showing weather for a default city. You can use the search bar to find another location.");
+                break;
+            }
           }
-        },
-        (err) => {
-          switch (err.code) {
-            case err.PERMISSION_DENIED:
-              setError("Location access denied. Please enable location services to see local weather.");
-              break;
-            case err.POSITION_UNAVAILABLE:
-              setError("Location information is unavailable.");
-              break;
-            case err.TIMEOUT:
-              setError("The request to get user location timed out.");
-              break;
-            default:
-              setError("An unknown error occurred while fetching location.");
-              break;
-          }
-          setLoading(false);
-          console.error(`Geolocation error: ${err.message}`);
-        }
-      );
-    } else {
-      setError("Geolocation is not supported by this browser.");
-      setLoading(false);
-    }
+        );
+      } else {
+        setError("Geolocation is not supported. Showing weather for a default city.");
+        // Use fallback coordinates for New York as an example
+        loadWeatherForCoords(40.7128, -74.0060); 
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialWeather();
     
     // Fetch weather for major cities
     const fetchCitiesWeather = async () => {
@@ -194,7 +198,7 @@ export default function Home() {
             <Loader2 className="animate-spin h-12 w-12 mb-4" />
             <p className="text-lg">{loadingMessage}</p>
           </div>
-        ) : error ? (
+        ) : error && !weather ? ( // Only show full-screen error if there's no weather data at all
            <Alert variant="destructive" className="max-w-md mx-auto bg-red-500/50 text-white border-red-500">
             <Terminal className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
@@ -202,6 +206,13 @@ export default function Home() {
           </Alert>
         ) : weather && locationName ? (
           <>
+            {error && ( // Show non-blocking error toast if weather data is available
+              <Alert variant="destructive" className="max-w-md mx-auto mb-4 bg-red-500/80 text-white border-red-500">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>A quick heads-up!</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold text-center">Weather in Major Cities</CardTitle>
